@@ -1,4 +1,4 @@
-from retico_core.abstract import IncrementalUnit, AbstractModule
+from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage
 from retico_core.text import SpeechRecognitionIU
 
 
@@ -48,8 +48,8 @@ class LanguageModule(AbstractModule):
     @staticmethod
     def output_iu():
         '''define output "type" '''
-        return [LanguageIU]
+        return LanguageIU
 
     def process_update(self, update_message):
         '''define output values'''
-        pass
+        return UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD)

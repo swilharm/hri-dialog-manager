@@ -1,4 +1,6 @@
-from retico_core.abstract import IncrementalUnit, AbstractProducingModule
+import time
+
+from retico_core.abstract import IncrementalUnit, AbstractProducingModule, UpdateMessage, UpdateType
 
 
 class GestureIU(IncrementalUnit):
@@ -23,10 +25,14 @@ class GestureIU(IncrementalUnit):
 
     @staticmethod
     def type():
-        return "Gesture"
+        return "Gesture IU"
 
 
 class GestureModule(AbstractProducingModule):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.last_update = time.time()
 
     @staticmethod
     def name():
@@ -38,7 +44,10 @@ class GestureModule(AbstractProducingModule):
 
     @staticmethod
     def output_iu():
-        return [GestureIU]
+        return GestureIU
 
     def process_update(self, update_message):
+        if time.time() - self.last_update > 1:
+            self.last_update = time.time()
+            return UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD)
         pass
