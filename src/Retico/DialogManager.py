@@ -41,9 +41,9 @@ class DialogManagerModule(AbstractModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.language_and_vision = {'iu': None, 'time': time.time()}
-        self.language = {'iu': None, 'time': time.time()}
-        self.gesture = {'iu': None, 'time': time.time()}
+        self.language_and_vision = {'confidence_instruction': 0.0, 'coordinates': dict(), 'time': time.time()}
+        self.language = {'confidence_instruction': 0.0, 'coordinates': dict(), 'confidence_pickup': 0.0, 'time': time.time()}
+        self.gesture = {'confidence_instruction': 0.0, 'coordinates': dict(), 'time': time.time()}
 
     @staticmethod
     def name():
@@ -66,44 +66,64 @@ class DialogManagerModule(AbstractModule):
         ''' define output values'''
         iu = next(update_message.incremental_units())
         if iu.type() == "Language and Vision IU":
-            self.language_and_vision['iu'] = iu
+            self.language_and_vision['confidence_instruction'] = iu.confidence_instruction
+            self.language_and_vision['coordinates'] = iu.coordinates
             self.language_and_vision['time'] = time.time()
         elif iu.type() == "Language IU":
-            self.language['iu'] = iu
+            self.language['confidence_instruction'] = iu.confidence_instruction
+            self.language['coordinates'] = iu.coordinates
+            self.language['confidence_pickup'] = iu.confidence_pickup
             self.language['time'] = time.time()
         elif iu.type() == "Gesture IU":
-            self.gesture['iu'] = iu
+            self.gesture['confidence_instruction'] = iu.confidence_instruction
+            self.gesture['coordinates'] = iu.coordinates
             self.gesture['time'] = time.time()
         else:
             print("What is happening, I am frightened:", iu.type())
 
         if time.time() - self.language_and_vision['time'] > DECAY:
-            self.language_and_vision['iu'] = None
+            self.language_and_vision['confidence_instruction'] = 0.0
+            self.language_and_vision['coordinates'] = dict()
         if time.time() - self.language['time'] > DECAY:
-            self.language['iu'] = None
+            self.language['confidence_instruction'] = 0.0
+            self.language['coordinates'] = dict()
+            self.language['confidence_pickup'] = 0.0
         if time.time() - self.gesture['time'] > DECAY:
-            self.gesture['iu'] = None
+            self.gesture['confidence_instruction'] = 0.0
+            self.gesture['coordinates'] = dict()
 
-        rule_thresh = 0.95
+        instr_thresh = 0.95
         coord_thresh = 0.95
 
-#        if self.language_and_vision['iu'] is None or self.language['iu'] is None or self.gesture['iu'] is None:
-#            pass
-
-        if self.language['iu'] and self.language['iu'].confidence_instruction > rule_thresh:
-            print(self.language['iu'].coordinates)
+        iu = self.create_iu()
+        if self.language['confidence_instruction'] > instr_thresh:
+            print(self.language['coordinates'])
         else:
-            if self.language_and_vision['iu'] is not None and self.gesture['iu'] is not None:
-                if self.language_and_vision['iu'].confidence_instruction > rule_thresh > self.gesture['iu'].confidence_instruction:
-                    print(self.language_and_vision['iu'].coordinates)
-                    # TODO coordinate confidence, maybe even uncertainty?
-                if self.language_and_vision['iu'].confidence_instruction < rule_thresh < self.gesture['iu'].confidence_instruction:
-                    print(self.gesture['iu'].coordinates)
-                    # TODO coordinate confidence, maybe even uncertainty?
-                if self.language_and_vision['iu'].confidence_instruction > rule_thresh and self.gesture['iu'].confidence_instruction > rule_thresh:
-                    print("OOGA BOOGA BOOGA")
-                    # TODO become sentient, learn actual language, code this
-                if self.language_and_vision['iu'].confidence_instruction < rule_thresh and self.gesture['iu'].confidence_instruction < rule_thresh:
-                    print("I don't know what to do UwU")
-                    # TODO move out our mom's basement, meet a cute girl/boy/whatever you prefer
+            if self.language_and_vision['confidence_instruction'] > instr_thresh > self.gesture['confidence_instruction']:
+                coordinate = max(self.language_and_vision['coordinates'], key=self.language_and_vision['coordinates'].get)
+                probability = self.language_and_vision['coordinates'][coordinate]
+                if probability > coord_thresh:
+                    iu.decision_coordinate = coordinate
+                    iu.confidence_decision = probability
+                    iu.decision_pickup = 1
+                else:
+                    iu.decision_coordinate = (0.0, 0.0, 0.0)
+                    iu.confidence_decision = 0
+                    iu.decision_pickup = 2
+            elif self.language_and_vision['confidence_instruction'] < instr_thresh < self.gesture['confidence_instruction']:
+                coordinate = max(self.gesture['coordinates'], key=self.gesture['coordinates'].get)
+                probability = self.gesture['coordinates'][coordinate]
+                if probability > coord_thresh:
+                    iu.decision_coordinate = coordinate
+                    iu.confidence_decision = probability
+                    iu.decision_pickup = 1
+                else:
+                    iu.decision_coordinate = (0.0, 0.0, 0.0)
+                    iu.confidence_decision = 0
+                    iu.decision_pickup = 2
+            elif self.language_and_vision['confidence_instruction'] > instr_thresh and self.gesture['confidence_instruction'] > instr_thresh:
+                return#TODO Calculate mean coordinate confidences. If one is high, send it, else uncertainty
+            elif self.language_and_vision['confidence_instruction'] < instr_thresh and self.gesture['confidence_instruction'] < instr_thresh:
+                return
+
 

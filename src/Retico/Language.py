@@ -50,6 +50,9 @@ class LanguageModule(AbstractModule):
         '''define output "type" '''
         return LanguageIU
 
-    def process_update(self, update_message):
+    def process_update(self, update_message: UpdateMessage):
         '''define output values'''
+        #ut: SpeechRecognitionIU = next(update_message.update_types())
+        #iu: SpeechRecognitionIU = next(update_message.incremental_units())
+        #print(ut, iu.payload)
         return UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD)

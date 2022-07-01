@@ -19,7 +19,7 @@ output_module = OutputModule()
 
 if __name__ == '__main__':
     microphone_module.subscribe(asr_module)
-    asr_module.subscribe(output_module)
+    #asr_module.subscribe(output_module)
     asr_module.subscribe(language_and_vision_module)
     asr_module.subscribe(language_only_module)
     language_and_vision_module.subscribe(dialog_manager_module)
@@ -36,6 +36,7 @@ if __name__ == '__main__':
     motion_module.run()
     output_module.run()
 
+    print("READY")
     input()
 
     microphone_module.stop()

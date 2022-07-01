@@ -1,6 +1,7 @@
 import time
 
-from retico_core.abstract import IncrementalUnit, AbstractProducingModule, UpdateMessage, UpdateType
+from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractModule
+from retico_core.text import SpeechRecognitionIU
 
 
 class GestureIU(IncrementalUnit):
@@ -28,7 +29,7 @@ class GestureIU(IncrementalUnit):
         return "Gesture IU"
 
 
-class GestureModule(AbstractProducingModule):
+class GestureModule(AbstractModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -41,6 +42,10 @@ class GestureModule(AbstractProducingModule):
     @staticmethod
     def description():
         return "Module that represents task 4"
+
+    @staticmethod
+    def input_ius():
+        return [SpeechRecognitionIU]
 
     @staticmethod
     def output_iu():
