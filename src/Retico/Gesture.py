@@ -1,7 +1,8 @@
 import time
 
-from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractModule
+from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractModule, AbstractProducingModule
 from retico_core.text import SpeechRecognitionIU
+from src.Retico.data.dataset import DATASET, DATASET_INDEX, DATASET_INDEX_COUNTER
 
 
 class GestureIU(IncrementalUnit):
@@ -29,7 +30,7 @@ class GestureIU(IncrementalUnit):
         return "Gesture IU"
 
 
-class GestureModule(AbstractModule):
+class GestureModule(AbstractProducingModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -44,15 +45,14 @@ class GestureModule(AbstractModule):
         return "Module that represents task 4"
 
     @staticmethod
-    def input_ius():
-        return [SpeechRecognitionIU]
-
-    @staticmethod
     def output_iu():
         return GestureIU
 
     def process_update(self, update_message):
         if time.time() - self.last_update > 1:
             self.last_update = time.time()
-            return UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD)
+            iu:GestureIU = self.create_iu()
+            iu.confidence_instruction = DATASET["g"][DATASET_INDEX][0]
+            iu.coordinates = DATASET["g"][DATASET_INDEX][1]
+            return UpdateMessage.from_iu(iu, UpdateType.ADD)
         pass

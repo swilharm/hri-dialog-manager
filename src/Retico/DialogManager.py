@@ -1,3 +1,4 @@
+import json
 import time
 
 from retico_core.abstract import IncrementalUnit, AbstractModule
@@ -25,6 +26,7 @@ class DialogManagerIU(IncrementalUnit):
         self.decision_coordinate = (0.0, 0.0, 0.0)
         self.confidence_decision = 0.0
         self.decision_pickup = 0.0
+        self.iu_type = None
 
     def set_outputIUVariables(self, decision_coordinate, confidence_decision, decision_pickup):
         # confidence_pickup should always be zero -- should we drop it then?
@@ -60,26 +62,26 @@ class DialogManagerModule(AbstractModule):
     @staticmethod
     def output_iu():
         ''' define output "type" '''
-        return [DialogManagerIU]
+        return DialogManagerIU
 
     def process_update(self, update_message):
         ''' define output values'''
-        iu = next(update_message.incremental_units())
-        if iu.type() == "Language and Vision IU":
-            self.language_and_vision['confidence_instruction'] = iu.confidence_instruction
-            self.language_and_vision['coordinates'] = iu.coordinates
+        input_iu = next(update_message.incremental_units())
+        if input_iu.type() == "Language and Vision IU":
+            self.language_and_vision['confidence_instruction'] = input_iu.confidence_instruction
+            self.language_and_vision['coordinates'] = input_iu.coordinates
             self.language_and_vision['time'] = time.time()
-        elif iu.type() == "Language IU":
-            self.language['confidence_instruction'] = iu.confidence_instruction
-            self.language['coordinates'] = iu.coordinates
-            self.language['confidence_pickup'] = iu.confidence_pickup
+        elif input_iu.type() == "Language IU":
+            self.language['confidence_instruction'] = input_iu.confidence_instruction
+            self.language['coordinates'] = input_iu.coordinates
+            self.language['confidence_pickup'] = input_iu.confidence_pickup
             self.language['time'] = time.time()
-        elif iu.type() == "Gesture IU":
-            self.gesture['confidence_instruction'] = iu.confidence_instruction
-            self.gesture['coordinates'] = iu.coordinates
+        elif input_iu.type() == "Gesture IU":
+            self.gesture['confidence_instruction'] = input_iu.confidence_instruction
+            self.gesture['coordinates'] = input_iu.coordinates
             self.gesture['time'] = time.time()
         else:
-            print("What is happening, I am frightened:", iu.type())
+            print("What is happening, I am frightened:", input_iu.type())
 
         if time.time() - self.language_and_vision['time'] > DECAY:
             self.language_and_vision['confidence_instruction'] = 0.0
@@ -92,38 +94,65 @@ class DialogManagerModule(AbstractModule):
             self.gesture['confidence_instruction'] = 0.0
             self.gesture['coordinates'] = dict()
 
-        instr_thresh = 0.95
-        coord_thresh = 0.95
+        instr_thresh = 0.90
+        coord_thresh = 0.80
 
-        iu = self.create_iu()
+        output_iu = self.create_iu()
         if self.language['confidence_instruction'] > instr_thresh:
-            print(self.language['coordinates'])
+            output_iu.decision_coordinate = self.language['coordinates']
+            output_iu.confidence_decision = self.language['confidence_instruction']
+            output_iu.decision_pickup = 3
+            output_iu.iu_type = "LanguageIU"
         else:
             if self.language_and_vision['confidence_instruction'] > instr_thresh > self.gesture['confidence_instruction']:
                 coordinate = max(self.language_and_vision['coordinates'], key=self.language_and_vision['coordinates'].get)
                 probability = self.language_and_vision['coordinates'][coordinate]
                 if probability > coord_thresh:
-                    iu.decision_coordinate = coordinate
-                    iu.confidence_decision = probability
-                    iu.decision_pickup = 1
+                    output_iu.decision_coordinate = coordinate
+                    output_iu.confidence_decision = probability
+                    output_iu.decision_pickup = 1
+                    output_iu.iu_type = "LanguageAndVisionIU"
                 else:
-                    iu.decision_coordinate = (0.0, 0.0, 0.0)
-                    iu.confidence_decision = 0
-                    iu.decision_pickup = 2
+                    output_iu.decision_coordinate = (0.0, 0.0, 0.0)
+                    output_iu.confidence_decision = 0
+                    output_iu.decision_pickup = 2
+                    output_iu.iu_type = None
+                    print("UNCERTAINTY {•̃_•̃}")
             elif self.language_and_vision['confidence_instruction'] < instr_thresh < self.gesture['confidence_instruction']:
+                print(self.gesture['coordinates'])
                 coordinate = max(self.gesture['coordinates'], key=self.gesture['coordinates'].get)
                 probability = self.gesture['coordinates'][coordinate]
                 if probability > coord_thresh:
-                    iu.decision_coordinate = coordinate
-                    iu.confidence_decision = probability
-                    iu.decision_pickup = 1
+                    output_iu.decision_coordinate = coordinate
+                    output_iu.confidence_decision = probability
+                    output_iu.decision_pickup = 1
+                    output_iu.iu_type = "GestureIU"
                 else:
-                    iu.decision_coordinate = (0.0, 0.0, 0.0)
-                    iu.confidence_decision = 0
-                    iu.decision_pickup = 2
+                    output_iu.decision_coordinate = (0.0, 0.0, 0.0)
+                    output_iu.confidence_decision = 0
+                    output_iu.decision_pickup = 2
+                    output_iu.iu_type = None
+                    print("UNCERTAINTY {•̃_•̃}")
             elif self.language_and_vision['confidence_instruction'] > instr_thresh and self.gesture['confidence_instruction'] > instr_thresh:
-                return#TODO Calculate mean coordinate confidences. If one is high, send it, else uncertainty
+                mean = dict()
+                for key in self.language_and_vision['coordinates']:
+                    mean[key] = (self.language_and_vision['coordinates'][key]+self.gesture['coordinates'][key])/2
+                max_mean = max(mean, key=mean.get)
+                if mean[max_mean] > coord_thresh:
+                    output_iu.decision_coordinate = max(mean, key=mean.get)
+                    output_iu.confidence_decision = mean[output_iu.decision_coordinate]
+                    output_iu.decision_pickup = 4
+                    output_iu.iu_type = "LanguageAndVisionIU <3 GestureIU"
+                else:
+                    output_iu.decision_coordinate = (0.0, 0.0, 0.0)
+                    output_iu.confidence_decision = 0
+                    output_iu.decision_pickup = 2
+                    output_iu.iu_type = None
+                    print("UNCERTAINTY {•̃_•̃}")
             elif self.language_and_vision['confidence_instruction'] < instr_thresh and self.gesture['confidence_instruction'] < instr_thresh:
+                print("UNCERTAINTY {•̃_•̃}")
                 return
 
+        print(output_iu, output_iu.iu_type)
+        print(output_iu.confidence_decision, output_iu.decision_coordinate, output_iu.decision_pickup)
 

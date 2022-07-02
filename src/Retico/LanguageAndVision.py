@@ -1,11 +1,15 @@
-from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType
+import time
+
+from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType, AbstractProducingModule
 from retico_core.text import SpeechRecognitionIU
+
+from src.Retico.data.dataset import DATASET, DATASET_INDEX, DATASET_INDEX_COUNTER
 
 
 class LanguageAndVisionIU(IncrementalUnit):
 
     def __init__(
-        self, creator, iuid=0, previous_iu=None, grounded_in=None, payload=None
+            self, creator, iuid=0, previous_iu=None, grounded_in=None, payload=None
     ):
         super().__init__(
             creator,
@@ -26,7 +30,12 @@ class LanguageAndVisionIU(IncrementalUnit):
     def type():
         return "Language and Vision IU"
 
-class LanguageAndVisionModule(AbstractModule):
+
+class LanguageAndVisionModule(AbstractProducingModule):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.last_update = time.time()
 
     @staticmethod
     def name():
@@ -36,13 +45,19 @@ class LanguageAndVisionModule(AbstractModule):
     def description():
         return "Module that represents task 2"
 
-    @staticmethod
-    def input_ius():
-        return [SpeechRecognitionIU]
+    # @staticmethod
+    # def input_ius():
+    #    return [SpeechRecognitionIU]
 
     @staticmethod
     def output_iu():
         return LanguageAndVisionIU
 
     def process_update(self, update_message):
-        return UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD)
+        if time.time() - self.last_update > 1:
+            self.last_update = time.time()
+            iu: LanguageAndVisionIU = self.create_iu()
+            iu.confidence_instruction = DATASET["lv"][DATASET_INDEX][0]
+            iu.coordinates = DATASET["lv"][DATASET_INDEX][1]
+            return UpdateMessage.from_iu(iu, UpdateType.ADD)
+        pass

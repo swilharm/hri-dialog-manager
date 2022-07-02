@@ -1,8 +1,10 @@
-from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage
+import time
+
+from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage, AbstractProducingModule
 from retico_core.text import SpeechRecognitionIU
+from src.Retico.data.dataset import DATASET, DATASET_INDEX, DATASET_INDEX_COUNTER
 
 
-# module's resulting IU
 class LanguageIU(IncrementalUnit):
 
     def __init__(
@@ -31,7 +33,11 @@ class LanguageIU(IncrementalUnit):
         return "Language IU"
 
 
-class LanguageModule(AbstractModule):
+class LanguageModule(AbstractProducingModule):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.last_update = time.time()
 
     @staticmethod
     def name():
@@ -41,9 +47,9 @@ class LanguageModule(AbstractModule):
     def description():
         return "Module that represents task 3"
 
-    @staticmethod
-    def input_ius():
-        return [SpeechRecognitionIU]
+    #@staticmethod
+    #def input_ius():
+    #    return [SpeechRecognitionIU]
 
     @staticmethod
     def output_iu():
@@ -51,8 +57,10 @@ class LanguageModule(AbstractModule):
         return LanguageIU
 
     def process_update(self, update_message: UpdateMessage):
-        '''define output values'''
-        #ut: SpeechRecognitionIU = next(update_message.update_types())
-        #iu: SpeechRecognitionIU = next(update_message.incremental_units())
-        #print(ut, iu.payload)
-        return UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD)
+        if time.time() - self.last_update > 1:
+            self.last_update = time.time()
+            iu: LanguageIU = self.create_iu()
+            iu.confidence_instruction = DATASET["l"][DATASET_INDEX][0]
+            iu.coordinates = DATASET["l"][DATASET_INDEX][1]
+            return UpdateMessage.from_iu(iu, UpdateType.ADD)
+        pass
