@@ -25,7 +25,10 @@ class DialogManagerIU(IncrementalUnit):
         self.payload = payload
         self.decision_coordinate = (0.0, 0.0, 0.0)
         self.confidence_decision = 0.0
-        self.flag = 0
+        # zero and above are valid flags; currently only from lang team
+        # TODO:
+        # - Figure out flags from other teams
+        self.flag = -1 
         self.iu_type = None
 
     def set_outputIUVariables(self, decision_coordinate, confidence_decision, flag):
@@ -110,12 +113,12 @@ class DialogManagerModule(AbstractModule):
                 if probability > coord_thresh:
                     output_iu.decision_coordinate = coordinate
                     output_iu.confidence_decision = probability
-                    output_iu.flag = 1
+                    # output_iu.flag = 1
                     output_iu.iu_type = "LanguageAndVisionIU"
                 else:
                     output_iu.decision_coordinate = (0.0, 0.0, 0.0)
                     output_iu.confidence_decision = 0
-                    output_iu.flag = 2
+                    # output_iu.flag = 2
                     output_iu.iu_type = None
                     #print("UNCERTAINTY {•̃_•̃}")
             elif self.language_and_vision['confidence_instruction'] < instr_thresh < self.gesture['confidence_instruction']:
@@ -125,12 +128,12 @@ class DialogManagerModule(AbstractModule):
                 if probability > coord_thresh:
                     output_iu.decision_coordinate = coordinate
                     output_iu.confidence_decision = probability
-                    output_iu.flag = 1
+                    # output_iu.flag = 1
                     output_iu.iu_type = "GestureIU"
                 else:
                     output_iu.decision_coordinate = (0.0, 0.0, 0.0)
                     output_iu.confidence_decision = 0
-                    output_iu.flag = 2
+                    # output_iu.flag = 2
                     output_iu.iu_type = None
                     #print("UNCERTAINTY {•̃_•̃}")
             elif self.language_and_vision['confidence_instruction'] > instr_thresh and self.gesture['confidence_instruction'] > instr_thresh:
@@ -141,12 +144,12 @@ class DialogManagerModule(AbstractModule):
                 if mean[max_mean] > coord_thresh:
                     output_iu.decision_coordinate = max(mean, key=mean.get)
                     output_iu.confidence_decision = mean[output_iu.decision_coordinate]
-                    output_iu.flag = 4
+                    # output_iu.flag = 4
                     output_iu.iu_type = "LanguageAndVisionIU <3 GestureIU"
                 else:
                     output_iu.decision_coordinate = (0.0, 0.0, 0.0)
                     output_iu.confidence_decision = 0
-                    output_iu.flag = 2
+                    # output_iu.flag = 2
                     output_iu.iu_type = None
                     #print("UNCERTAINTY {•̃_•̃}")
             elif self.language_and_vision['confidence_instruction'] < instr_thresh and self.gesture['confidence_instruction'] < instr_thresh:
