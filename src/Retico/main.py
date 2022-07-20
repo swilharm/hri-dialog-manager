@@ -9,7 +9,7 @@ from Language import LanguageModule
 from LanguageAndVision import LanguageAndVisionModule
 from Motion import MotionModule
 from OutputModule import OutputModule
-from src.Retico.data.dataset import DATASET, DATASET_INDEX
+from data.dataset import DATASET, DATASET_INDEX
 
 microphone_module = MicrophoneModule(chunk_size=44100)
 asr_module = GoogleASRModule(language="en-US")
@@ -22,7 +22,7 @@ output_module = OutputModule()
 
 
 def loadExampleData():
-    with open("data/test_data_examples.json") as file:
+    with open("src/Retico/data/test_data_examples.json") as file:
         data = json.loads(file.read())
     for i in data[0]:
         DATASET["lv"].append(i[0])
@@ -32,7 +32,7 @@ def loadExampleData():
 
 if __name__ == '__main__':
     microphone_module.subscribe(asr_module)
-    # asr_module.subscribe(output_module)
+    #asr_module.subscribe(output_module)
     asr_module.subscribe(language_and_vision_module)
     asr_module.subscribe(language_only_module)
     language_and_vision_module.subscribe(dialog_manager_module)
