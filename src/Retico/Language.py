@@ -2,7 +2,7 @@ import time
 
 from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage
 from retico_core.text import SpeechRecognitionIU
-from data.dataset import DATASET, DATASET_INDEX, DATASET_INDEX_COUNTER
+from data.data import DATASET
 from src.ROS.run import main as language
 
 
@@ -74,10 +74,11 @@ class LanguageModule(AbstractModule):
             return UpdateMessage.from_iu(language_iu, UpdateType.ADD)
 
 
-        # if time.time() - self.last_update > 1:
+        # if time.time() - self.last_update > 5:
         #     self.last_update = time.time()
         #     iu: LanguageIU = self.create_iu()
-        #     iu.confidence_instruction = DATASET["l"][DATASET_INDEX][0]
-        #     iu.coordinates = DATASET["l"][DATASET_INDEX][1]
+        #     language_input = DATASET.get_gesture()
+        #     iu.confidence_instruction = language_input[0]
+        #     iu.coordinates = language_input[1]
         #     return UpdateMessage.from_iu(iu, UpdateType.ADD)
         # pass

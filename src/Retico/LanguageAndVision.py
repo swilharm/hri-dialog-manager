@@ -3,7 +3,7 @@ import time
 from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType, AbstractProducingModule
 from retico_core.text import SpeechRecognitionIU
 
-from src.Retico.data.dataset import DATASET, DATASET_INDEX, DATASET_INDEX_COUNTER
+from data.data import DATASET
 
 
 class LanguageAndVisionIU(IncrementalUnit):
@@ -54,10 +54,11 @@ class LanguageAndVisionModule(AbstractProducingModule):
         return LanguageAndVisionIU
 
     def process_update(self, update_message):
-        if time.time() - self.last_update > 1:
+        if time.time() - self.last_update > 5:
             self.last_update = time.time()
             iu: LanguageAndVisionIU = self.create_iu()
-            iu.confidence_instruction = DATASET["lv"][DATASET_INDEX][0]
-            iu.coordinates = DATASET["lv"][DATASET_INDEX][1]
+            language_and_vision_input = DATASET.get_gesture()
+            iu.confidence_instruction = language_and_vision_input[0]
+            iu.coordinates = language_and_vision_input[1]
             return UpdateMessage.from_iu(iu, UpdateType.ADD)
         pass

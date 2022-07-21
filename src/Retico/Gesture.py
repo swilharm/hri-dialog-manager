@@ -2,7 +2,7 @@ import time
 
 from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractModule, AbstractProducingModule
 from retico_core.text import SpeechRecognitionIU
-from src.Retico.data.dataset import DATASET, DATASET_INDEX, DATASET_INDEX_COUNTER
+from data.data import DATASET
 
 
 class GestureIU(IncrementalUnit):
@@ -49,10 +49,11 @@ class GestureModule(AbstractProducingModule):
         return GestureIU
 
     def process_update(self, update_message):
-        if time.time() - self.last_update > 1:
+        if time.time() - self.last_update > 5:
             self.last_update = time.time()
             iu:GestureIU = self.create_iu()
-            iu.confidence_instruction = DATASET["g"][DATASET_INDEX][0]
-            iu.coordinates = DATASET["g"][DATASET_INDEX][1]
+            gesture_input = DATASET.get_gesture()
+            iu.confidence_instruction = gesture_input[0]
+            iu.coordinates = gesture_input[1]
             return UpdateMessage.from_iu(iu, UpdateType.ADD)
         pass
