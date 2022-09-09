@@ -10,9 +10,7 @@ import sklearn
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-"""Load the dataset """
-
-# Load the dataet
+# Load the dataset
 X_df = pd.read_json('data/X_DM.json', orient = 'index')
 
 no_puzzlepieces = 15
