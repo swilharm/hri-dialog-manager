@@ -52,8 +52,9 @@ def convert_datatype(X_df, y_df):
 
     # Tensorize X and y
     array_X = final_df_noisy.values
+    array_y = y_df.values
     tensor_X = torch.FloatTensor(array_X)
-    tensor_y = torch.LongTensor(y_df.values).view(-1)
+    tensor_y = torch.LongTensor(array_y).view(-1)
 
     return tensor_X, tensor_y
 
@@ -178,7 +179,7 @@ def pred_uncert(X, y):
 if __name__ == '__main__':
     # Load the dataset
     X_df = pd.read_json('data/X_DM.json', orient='index')
-    y_df = pd.read_json('data/y_DM.json', orient='index')
+    y_df = pd.DataFrame(pd.read_json('data/y_DM.json').values.T)
     tensor_X, tensor_y = convert_datatype(X_df, y_df)
     tensor_X, tensor_y = tensor_X[:], tensor_y[:]
     print(tensor_X.shape, tensor_y.shape)
