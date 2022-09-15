@@ -1,48 +1,20 @@
-import json
-import pandas as pd
+import pickle
 import numpy as np
 from tqdm import tqdm
 
 
-def load_data(x_path, y_path, no_puzzlepieces):
-    with open(x_path) as f:
-        data = json.load(f)
+def load_data(x_path, y_path):
 
-    X = pd.DataFrame.from_dict(data, orient='index')
+    with open(x_path, 'rb') as X_file:
+        X_df = pickle.load(X_file)
+    with open(y_path, 'rb') as y_file:
+        y_df = pickle.load(y_file)
 
-    with open(y_path) as f:
-        data = json.load(f)
-
-    y = pd.DataFrame(pd.DataFrame.from_dict(data).values.T)
-
-    df_new = X.drop(['Instruction', 'Coordinate'], axis=1)
-
-    instr_df = pd.DataFrame(df_new['Instruction Confidence'].to_list())
-    instr_df.head()
-
-    coord_df = pd.DataFrame(df_new['Coordinate Confidence'].to_list())
-
-    coord_df0 = pd.DataFrame(coord_df[0].to_list())
-    coord_df1 = pd.DataFrame(coord_df[1].to_list())
-
-    a = [f'Instr{i}' for i in range(3)]
-    b = [f'LV{i}' for i in range(no_puzzlepieces)]
-    c = [f'G{i}' for i in range(no_puzzlepieces)]
-
-    col_names = []
-    col_names.extend(a)
-    col_names.extend(b)
-    col_names.extend(c)
-
-    final_df_noisy = pd.concat([instr_df, coord_df0, coord_df1], axis=1)
-    final_df_noisy.columns = col_names
-
-    return final_df_noisy, y
-
+    return X_df, y_df
 
 def dt(instr_confs, lv_coord_confs, g_coord_confs):
     instr_thresh = 0.8
-    coord_thresh = 0.1
+    coord_thresh = 0.7
     if instr_confs[2] > instr_thresh:
         return 1
     else:
@@ -74,12 +46,11 @@ def dt(instr_confs, lv_coord_confs, g_coord_confs):
 
 if __name__ == '__main__':
     NUM_PIECES = 15
-    X, y = load_data('data/X_DM.json', 'data/y_DM.json', NUM_PIECES)
-    X, y = X[:], y[:]
+    X, y = load_data('data/X_DM.pickle', 'data/y_DM.pickle')
     preds = []
-    for row in tqdm(X.values, total=len(X)):
+    for row in tqdm(X, total=len(X)):
         pred = dt(row[:3], row[3:3 + NUM_PIECES], row[3 + NUM_PIECES:])
         preds.append(pred)
 
-    acc = sum([i == j for i, j in zip(preds, y.values)]) / len(y)
-    print(acc)
+    acc = np.mean(np.equal(np.array(preds), y.flatten()))
+    print(f"Accuracy: {acc}")

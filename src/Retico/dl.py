@@ -1,12 +1,8 @@
-import random
-import numpy as np
-import pandas as pd
-import json
+import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import sklearn
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
@@ -29,32 +25,10 @@ class Net(nn.Module):
 
 
 def convert_datatype(X_df, y_df):
-    ### convert the datatype from list object to float ####
-    df_new = X_df.drop(['Instruction', 'Coordinate'], axis=1)
-    instr_df = pd.DataFrame(df_new['Instruction Confidence'].to_list())
-    coord_df = pd.DataFrame(df_new['Coordinate Confidence'].to_list())
-    coord_df0 = pd.DataFrame(coord_df[0].to_list())
-    coord_df1 = pd.DataFrame(coord_df[1].to_list())
-
-    # column name
-    no_puzzlepieces = 15
-    a = [f'Instr{i}' for i in range(3)]
-    b = [f'LV{i}' for i in range(no_puzzlepieces)]
-    c = [f'G{i}' for i in range(no_puzzlepieces)]
-
-    col_names = []
-    col_names.extend(a)
-    col_names.extend(b)
-    col_names.extend(c)
-
-    final_df_noisy = pd.concat([instr_df, coord_df0, coord_df1], axis=1)
-    final_df_noisy.columns = col_names
 
     # Tensorize X and y
-    array_X = final_df_noisy.values
-    array_y = y_df.values
-    tensor_X = torch.FloatTensor(array_X)
-    tensor_y = torch.LongTensor(array_y).view(-1)
+    tensor_X = torch.FloatTensor(X_df)
+    tensor_y = torch.LongTensor(y_df).view(-1)
 
     return tensor_X, tensor_y
 
@@ -71,8 +45,8 @@ def pred_coord(X, y):
     output_size = 15 + 2  # p + No instruction given + Language
     lr = 0.01
     batch_size = 512
-    n_epochs = 30
-    report_every = 3
+    n_epochs = 10
+    report_every = 1
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = Net(input_size, hidden_size, output_size).to(device)
@@ -130,8 +104,8 @@ def pred_uncert(X, y):
     output_size = 2
     lr = 0.01
     batch_size = 512
-    n_epochs = 30
-    report_every = 3
+    n_epochs = 10
+    report_every = 1
 
     net = Net(input_size, hidden_size, output_size).to(device)
 
@@ -170,7 +144,6 @@ def pred_uncert(X, y):
                 pred_label_test = torch.argmax(pred, dim=1)
                 test_acc_2 = torch.sum(pred_label_test == target) / len(y_test)
 
-            # print('epoch: %d, loss: %.4f, train acc: %.2f, test acc: %.2f' % (epoch, total_loss_2/int(len(X_train)/batch_size), train_acc_2, test_acc_2))
             print('epoch: %d, loss: %.4f, train acc: %.2f, test acc: %.2f' % (epoch, total_loss_2 / int(len(X_train) / batch_size), train_acc_2, test_acc_2))
 
     return net
@@ -178,8 +151,11 @@ def pred_uncert(X, y):
 
 if __name__ == '__main__':
     # Load the dataset
-    X_df = pd.read_json('data/X_DM.json', orient='index')
-    y_df = pd.DataFrame(pd.read_json('data/y_DM.json').values.T)
+    print("Loading dataset")
+    with open('data/X_DM.pickle', 'rb') as X_file:
+        X_df = pickle.load(X_file)
+    with open('data/y_DM.pickle', 'rb') as y_file:
+        y_df = pickle.load(y_file)
     tensor_X, tensor_y = convert_datatype(X_df, y_df)
     tensor_X, tensor_y = tensor_X[:], tensor_y[:]
     print(tensor_X.shape, tensor_y.shape)
