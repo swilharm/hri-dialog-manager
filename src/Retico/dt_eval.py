@@ -34,7 +34,7 @@ def dt(instr_confs, lv_coord_confs, g_coord_confs):
                 return 0
         elif instr_confs[0] > instr_thresh and instr_confs[1] > instr_thresh:
             mean = [(lv + g) / 2 for lv, g in zip(lv_coord_confs, g_coord_confs)]
-            max_mean = np.argmax(mean)
+            max_mean = mean.index(max(mean))
             if mean[max_mean] > coord_thresh:
                 return max_mean + 2
             else:

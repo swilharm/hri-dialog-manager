@@ -1,30 +1,20 @@
-import json
+import pickle
+import random
+
+NUM_PIECES = 15
 
 
 class PentominoData:
 
-    def __init__(self, path="src/Retico/data/test_data_examples.json"):
-        self.index = 0
+    def __init__(self):
+        with open('src/Retico/data/X_DM.pickle', 'rb') as X_file:
+            self.dataset = pickle.load(X_file)
+        self.index = random.randint(0, len(self.dataset))
 
-        with open(path) as file:
-            data = json.loads(file.read())
-
-        self.language_and_vision = []
-        self.gesture = []
-        self.language = []
-        for i in data[0]:
-            self.language_and_vision.append(i[0])
-            self.gesture.append(i[1])
-            self.language.append(i[2])
-
-    def get_language_and_vision(self):
-        return self.language_and_vision[self.index]
-
-    def get_gesture(self):
-        return self.gesture[self.index]
-
-    def get_language(self):
-        return self.language[self.index]
+    def get_sample(self):
+        datapoint = self.dataset[self.index]
+        self.index = random.randint(0, len(self.dataset))
+        return datapoint
 
 
 DATASET = PentominoData()
