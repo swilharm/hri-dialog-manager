@@ -1,4 +1,6 @@
 import pickle
+import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -89,7 +91,7 @@ def pred_coord(X, y):
                 pred_label_test = torch.argmax(pred, dim=1)
                 test_acc = torch.sum(pred_label_test == target) / len(y_test)
 
-            print('epoch: %d, loss: %.4f, train acc: %.2f, test acc: %.2f' % (epoch, total_loss / int(len(X_train) / batch_size), train_acc, test_acc))
+            print('epoch: %d, loss: %.4f, train acc: %.4f, test acc: %.4f' % (epoch, total_loss / int(len(X_train) / batch_size), train_acc, test_acc))
 
     return net
 
@@ -144,12 +146,13 @@ def pred_uncert(X, y):
                 pred_label_test = torch.argmax(pred, dim=1)
                 test_acc_2 = torch.sum(pred_label_test == target) / len(y_test)
 
-            print('epoch: %d, loss: %.4f, train acc: %.2f, test acc: %.2f' % (epoch, total_loss_2 / int(len(X_train) / batch_size), train_acc_2, test_acc_2))
+            print('epoch: %d, loss: %.4f, train acc: %.4f, test acc: %.4f' % (epoch, total_loss_2 / int(len(X_train) / batch_size), train_acc_2, test_acc_2))
 
     return net
 
 
 if __name__ == '__main__':
+    start = time.time()
     # Load the dataset
     print("Loading dataset")
     with open('data/X_DM.pickle', 'rb') as X_file:
@@ -180,4 +183,6 @@ if __name__ == '__main__':
     print("Training model 2")
     net_task_2 = pred_uncert(X_2, long_tensor)
     net_task_2.eval()
+    end = time.time()
+    print(f"Runtime: {end-start:.2f} seconds")
 
