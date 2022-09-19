@@ -1,15 +1,16 @@
 import time
 import enum
 import random
-
+import numpy as np
 import torch
-from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType
+from stable_baselines3 import PPO
 
-# module's resulting IU
+from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType, IncrementalQueue
 from Gesture import GestureIU
 from Language import LanguageIU
 from LanguageAndVision import LanguageAndVisionIU
 from src.Retico.dl import Net
+from src.Retico.periodic import PeriodicIU
 
 NUM_PIECES = 15
 random.seed(NUM_PIECES)
@@ -44,13 +45,6 @@ class DialogManagerIU(IncrementalUnit):
         self.decision_coordinate = (0.0, 0.0, 0.0)
         self.confidence_decision = 0.0
         self.flag = -1
-        self.iu_type = None
-
-    def set_outputIUVariables(self, decision_coordinate, confidence_decision, flag):
-        # flag should always be zero -- should we drop it then?
-        self.decision_coordinate = decision_coordinate
-        self.confidence_decision = confidence_decision
-        self.flag = flag
 
     @staticmethod
     def type():
@@ -62,6 +56,7 @@ class DialogManagerModule(AbstractModule):
     def __init__(self, model="DT", **kwargs):
         super().__init__(**kwargs)
         self.model = model
+        self.times = list()
 
     @staticmethod
     def name():
@@ -73,7 +68,7 @@ class DialogManagerModule(AbstractModule):
 
     @staticmethod
     def input_ius():
-        return [GestureIU, LanguageAndVisionIU, LanguageIU]
+        return [LanguageAndVisionIU, LanguageIU, GestureIU, PeriodicIU]
 
     @staticmethod
     def output_iu():
@@ -81,9 +76,9 @@ class DialogManagerModule(AbstractModule):
         return DialogManagerIU
 
     def setup(self):
-        self.lv = LanguageAndVisionIU(grounded_in=LanguageAndVisionIU())
-        self.l = LanguageIU(grounded_in=LanguageIU())
-        self.g = GestureIU(grounded_in=GestureIU())
+        self.lv = LanguageAndVisionIU(grounded_in=LanguageAndVisionIU(), processed=True)
+        self.l = LanguageIU(grounded_in=LanguageIU(), processed=True)
+        self.g = GestureIU(grounded_in=GestureIU(), processed=True)
         if self.model == "DL":
             self.setup_deep_learning()
         elif self.model == "RL":
@@ -96,6 +91,7 @@ class DialogManagerModule(AbstractModule):
             input_iu: IncrementalUnit
             if update_type == UpdateType.REVOKE:
                 input_iu = input_iu.previous_iu
+                input_iu.processed = False
 
             if input_iu.type() == "Language and Vision IU":
                 self.lv = input_iu
@@ -104,12 +100,12 @@ class DialogManagerModule(AbstractModule):
             elif input_iu.type() == "Gesture IU":
                 self.g = input_iu
 
-            oldest_iu_time = min(self.lv.grounded_in.created_at, self.l.grounded_in.created_at,
-                                 self.g.grounded_in.created_at)
+            oldest_iu_time = min(self.lv.grounded_in.created_at if not self.lv.processed else np.inf,
+                                 self.l.grounded_in.created_at if not self.l.processed else np.inf,
+                                 self.g.grounded_in.created_at if not self.g.processed else np.inf)
 
             ARTIFICIAL_DELAY = 0.1
-
-            if time.time() - oldest_iu_time > ARTIFICIAL_DELAY:
+            if oldest_iu_time != np.inf and time.time() - oldest_iu_time > ARTIFICIAL_DELAY:
                 lv = self.lv
                 while lv.previous_iu and lv.grounded_in.created_at - oldest_iu_time > 0:
                     lv = lv.previous_iu
@@ -135,13 +131,17 @@ class DialogManagerModule(AbstractModule):
                 else:
                     decision = self.decision_tree(lv, l, g)
 
-                print("Decision:", decision)
+                lv.processed = True
+                l.processed = True
+                g.processed = True
+
+                # print("Decision:", decision)
 
                 output_iu: DialogManagerIU = self.create_iu()
                 if decision == -1:
                     output_iu.flag = Flag.UNCERTAINTY
                 elif decision == 0:
-                    continue
+                    pass
                 elif decision == 1:
                     output_iu.confidence_decision = 1
                     output_iu.decision_coordinate = l.coordinates
@@ -155,8 +155,7 @@ class DialogManagerModule(AbstractModule):
                     previous_iu: DialogManagerIU = output_iu.previous_iu
                     if previous_iu.confidence_decision != output_iu.confidence_decision or \
                             previous_iu.decision_coordinate != output_iu.decision_coordinate or \
-                            previous_iu.flag != output_iu.flag or \
-                            previous_iu.iu_type != output_iu.iu_type:
+                            previous_iu.flag != output_iu.flag:
                         output_ius.append((UpdateType.REVOKE, previous_iu))
                         output_ius.append((UpdateType.ADD, output_iu))
                 else:
@@ -194,7 +193,6 @@ class DialogManagerModule(AbstractModule):
                 return 0
 
     def build_vector(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU):
-        import numpy as np
         array = np.empty((33,))
         array[0] = lv.confidence_instruction
         array[1] = g.confidence_instruction
@@ -204,24 +202,22 @@ class DialogManagerModule(AbstractModule):
         return array
 
     def setup_deep_learning(self):
-        import torch
+        print("Loading DL model 1")
         self.net_task_1 = Net(input_size=33, hidden_size=32, output_size=17)
         self.net_task_1.load_state_dict(torch.load("src/Retico/DL_action_model.pt"))
         self.net_task_1.eval()
+        print("Loading DL model 2")
         self.net_task_2 = Net(input_size=33, hidden_size=32, output_size=2)
         self.net_task_2.load_state_dict(torch.load("src/Retico/DL_uncertainty_model.pt"))
         self.net_task_2.eval()
 
     def setup_reinforcement_learning(self):
-        print("Importing stable_baselines")
-        from stable_baselines3 import PPO
         print("Loading RL model 1")
         self.rl_task_1 = PPO.load('src/Retico/RL_action_model', None)
         print("Loading RL model 2")
         self.rl_task_2 = PPO.load('src/Retico/RL_uncertainty_model', None)
 
     def deep_learning(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU) -> int:
-        import torch
         tensor = torch.FloatTensor(self.build_vector(lv, l, g))
         uncertainty = torch.argmax(self.net_task_2(tensor)).item()
         if uncertainty == 1:

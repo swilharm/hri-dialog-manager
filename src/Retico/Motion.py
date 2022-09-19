@@ -21,10 +21,14 @@ class MotionModule(AbstractConsumingModule):
         for input_iu, update_type in zip(update_message.incremental_units(), update_message.update_types()):
             input_iu: DialogManagerIU
             if update_type == UpdateType.ADD:
-                self.send_to_motion_team(input_iu)
+                if input_iu.flag != -1:
+                    self.current_ius.append(input_iu)
+                    send_to_motion_team(input_iu)
             else:
-                pass
+                self.current_ius.remove(input_iu)
 
-    def send_to_motion_team(self, dm_iu: DialogManagerIU):
-        # TODO once that is figured out
-        pass
+
+def send_to_motion_team(dm_iu: DialogManagerIU):
+    # TODO once that is figured out
+    print(dm_iu.confidence_decision, dm_iu.decision_coordinate, dm_iu.flag)
+    pass

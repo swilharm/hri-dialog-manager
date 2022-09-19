@@ -1,17 +1,16 @@
-import time
+import threading
 
-from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType, AbstractProducingModule
-from retico_core.text import SpeechRecognitionIU
+from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractTriggerModule
 
 from data.data import DATASET
 
 NUM_PIECES = 15
 
+
 class LanguageAndVisionIU(IncrementalUnit):
 
-    def __init__(
-            self, creator=None, iuid=0, previous_iu=None, grounded_in=None, payload=None
-    ):
+    def __init__(self, creator=None, iuid=0, previous_iu=None, grounded_in=None, payload=None, processed=False
+                 ):
         super().__init__(
             creator,
             iuid=iuid,
@@ -19,24 +18,20 @@ class LanguageAndVisionIU(IncrementalUnit):
             grounded_in=grounded_in,
             payload=payload,
         )
+        self.processed = processed
         self.payload = payload
         self.confidence_instruction = 0.0
-        self.coordinates = {i:0.0 for i in range(NUM_PIECES)}
-
-    def set_confidence_and_coordinates(self, confidence_instruction, coordinates):
-        self.confidence_instruction = confidence_instruction
-        self.coordinates = coordinates
+        self.coordinates = {i: 0.0 for i in range(NUM_PIECES)}
 
     @staticmethod
     def type():
         return "Language and Vision IU"
 
 
-class LanguageAndVisionModule(AbstractProducingModule):
+class LanguageAndVisionModule(AbstractTriggerModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.last_update = time.time()
 
     @staticmethod
     def name():
@@ -54,13 +49,11 @@ class LanguageAndVisionModule(AbstractProducingModule):
     def output_iu():
         return LanguageAndVisionIU
 
-    def process_update(self, update_message):
-        if time.time() - self.last_update > 1:
-            self.last_update = time.time()
-            iu = LanguageAndVisionIU()
-            iu.grounded_in = iu
-            datapoint = DATASET.get_sample()
-            iu.confidence_instruction = datapoint[0]
-            iu.coordinates = {i: j for i, j in enumerate(datapoint[3:3 + NUM_PIECES])}
-            return UpdateMessage.from_iu(iu, UpdateType.ADD)
-        pass
+    def trigger(self, **kwargs):
+        iu = LanguageAndVisionIU()
+        iu.grounded_in = iu
+        datapoint = DATASET.get_sample()
+        iu.confidence_instruction = datapoint[0]
+        iu.coordinates = {i: j for i, j in enumerate(datapoint[3:3 + NUM_PIECES])}
+        self.right_buffers()[-1].put(UpdateMessage.from_iu(iu, UpdateType.ADD))
+        threading.Timer(1, self.trigger).start()

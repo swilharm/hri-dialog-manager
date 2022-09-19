@@ -1,10 +1,12 @@
+import threading
+
 from retico_core.audio import MicrophoneModule
 from retico_googleasr.googleasr import GoogleASRModule
-
-from DialogManager import DialogManagerModule
-from Gesture import GestureModule
-from Language import LanguageModule
 from LanguageAndVision import LanguageAndVisionModule
+from Language import LanguageModule
+from Gesture import GestureModule
+from src.Retico.periodic import PeriodicModule
+from DialogManager import DialogManagerModule
 from Motion import MotionModule
 from OutputModule import OutputModule
 
@@ -13,6 +15,7 @@ asr_module = GoogleASRModule(language="en-US")
 language_and_vision_module = LanguageAndVisionModule()
 language_only_module = LanguageModule()
 gesture_module = GestureModule()
+periodic_module = PeriodicModule()
 dialog_manager_module = DialogManagerModule(model="DT")
 motion_module = MotionModule()
 output_module = OutputModule()
@@ -21,10 +24,11 @@ if __name__ == '__main__':
     microphone_module.subscribe(asr_module)
     #asr_module.subscribe(output_module)
     #asr_module.subscribe(language_and_vision_module)
-    #asr_module.subscribe(language_only_module)
+    asr_module.subscribe(language_only_module)
     language_and_vision_module.subscribe(dialog_manager_module)
     language_only_module.subscribe(dialog_manager_module)
     gesture_module.subscribe(dialog_manager_module)
+    periodic_module.subscribe(dialog_manager_module)
     dialog_manager_module.subscribe(motion_module)
 
     microphone_module.run()
@@ -32,9 +36,15 @@ if __name__ == '__main__':
     language_and_vision_module.run()
     language_only_module.run()
     gesture_module.run()
+    periodic_module.run()
     dialog_manager_module.run()
     motion_module.run()
     output_module.run()
+
+    language_and_vision_module.trigger()
+    # language_only_module.trigger()
+    gesture_module.trigger()
+    periodic_module.trigger()
 
     print("READY")
     input()
@@ -45,5 +55,6 @@ if __name__ == '__main__':
     language_and_vision_module.stop()
     language_only_module.stop()
     gesture_module.stop()
+    periodic_module.stop()
     asr_module.stop()
     microphone_module.stop()
