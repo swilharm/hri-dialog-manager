@@ -1,7 +1,9 @@
 import random
+import threading
 import time
 
-from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage, AbstractProducingModule
+from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage, AbstractProducingModule, \
+    AbstractTriggerModule
 from retico_core.text import SpeechRecognitionIU
 from retico_googleasr import GoogleASRModule
 
@@ -32,11 +34,11 @@ class LanguageIU(IncrementalUnit):
         return "Language IU"
 
 
-class LanguageModule(AbstractModule):
+class LanguageModule(AbstractTriggerModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.last_update = time.time()
+        self.loop = threading.Timer(1, self.trigger)
 
     @staticmethod
     def name():
@@ -46,14 +48,20 @@ class LanguageModule(AbstractModule):
     def description():
         return "Module that represents task 3"
 
-    @staticmethod
-    def input_ius():
-        return [SpeechRecognitionIU]
+    # @staticmethod
+    # def input_ius():
+    #     return [SpeechRecognitionIU]
 
     @staticmethod
     def output_iu():
         '''define output "type" '''
         return LanguageIU
+
+    def prepare_run(self):
+        self.loop.start()
+
+    def shutdown(self):
+        self.loop.cancel()
 
     def process_update(self, update_message: UpdateMessage):
         asr_iu: SpeechRecognitionIU = next(update_message.incremental_units())
@@ -80,4 +88,6 @@ class LanguageModule(AbstractModule):
         iu.confidence_instruction = datapoint[2]
         iu.coordinates = (random.randrange(-2, 2), random.randrange(-2, 2), random.randrange(-2, 2))
         iu.flag = 0
-        return UpdateMessage.from_iu(iu, UpdateType.ADD)
+        self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+        self.loop = threading.Timer(1, self.trigger)
+        self.loop.start()

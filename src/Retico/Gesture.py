@@ -32,6 +32,7 @@ class GestureModule(AbstractTriggerModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.loop = threading.Timer(1, self.trigger)
 
     @staticmethod
     def name():
@@ -45,11 +46,18 @@ class GestureModule(AbstractTriggerModule):
     def output_iu():
         return GestureIU
 
+    def prepare_run(self):
+        self.loop.start()
+
+    def shutdown(self):
+        self.loop.cancel()
+
     def trigger(self, **kwargs):
         iu = GestureIU()
         iu.grounded_in = iu
         datapoint = DATASET.get_sample()
         iu.confidence_instruction = datapoint[1]
         iu.coordinates = {i: j for i, j in enumerate(datapoint[3 + NUM_PIECES:])}
-        self.right_buffers()[-1].put(UpdateMessage.from_iu(iu, UpdateType.ADD))
-        threading.Timer(1, self.trigger).start()
+        self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+        self.loop = threading.Timer(1, self.trigger)
+        self.loop.start()

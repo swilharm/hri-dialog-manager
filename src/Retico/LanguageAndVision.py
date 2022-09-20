@@ -1,6 +1,7 @@
 import threading
 
 from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractTriggerModule
+from retico_core.text import SpeechRecognitionIU
 
 from data.data import DATASET
 
@@ -32,6 +33,7 @@ class LanguageAndVisionModule(AbstractTriggerModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.loop = threading.Timer(0.05, self.trigger)
 
     @staticmethod
     def name():
@@ -49,11 +51,25 @@ class LanguageAndVisionModule(AbstractTriggerModule):
     def output_iu():
         return LanguageAndVisionIU
 
+    def prepare_run(self):
+        self.loop.start()
+
+    def shutdown(self):
+        self.loop.cancel()
+
+    def process_update(self, update_message: UpdateMessage):
+        asr_iu: SpeechRecognitionIU = next(update_message.incremental_units())
+        if asr_iu.predictions[0][0]:
+            language_and_vision_iu: LanguageAndVisionIU = self.create_iu(grounded_in=asr_iu)
+            # TODO Integrate Language & Vision team
+            return UpdateMessage.from_iu(language_and_vision_iu, UpdateType.ADD)
+
     def trigger(self, **kwargs):
         iu = LanguageAndVisionIU()
         iu.grounded_in = iu
         datapoint = DATASET.get_sample()
         iu.confidence_instruction = datapoint[0]
         iu.coordinates = {i: j for i, j in enumerate(datapoint[3:3 + NUM_PIECES])}
-        self.right_buffers()[-1].put(UpdateMessage.from_iu(iu, UpdateType.ADD))
-        threading.Timer(1, self.trigger).start()
+        self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+        self.loop = threading.Timer(1, self.trigger)
+        self.loop.start()

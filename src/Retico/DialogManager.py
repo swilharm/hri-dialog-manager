@@ -10,7 +10,7 @@ from Gesture import GestureIU
 from Language import LanguageIU
 from LanguageAndVision import LanguageAndVisionIU
 from src.Retico.dl import Net
-from src.Retico.periodic import PeriodicIU
+from src.Retico.Periodic import PeriodicIU
 
 NUM_PIECES = 15
 random.seed(NUM_PIECES)
@@ -139,7 +139,7 @@ class DialogManagerModule(AbstractModule):
 
                 output_iu: DialogManagerIU = self.create_iu()
                 if decision == -1:
-                    output_iu.flag = Flag.UNCERTAINTY
+                    output_iu.flag = Flag.UNCERTAINTY.value
                 elif decision == 0:
                     pass
                 elif decision == 1:

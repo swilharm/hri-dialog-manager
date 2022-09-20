@@ -15,7 +15,7 @@ class PeriodicModule(AbstractTriggerModule):
 
     def __init__(self):
         super().__init__()
-        self.last_update = time.time()
+        self.loop = threading.Timer(0.05, self.trigger)
 
     @staticmethod
     def name():
@@ -29,6 +29,13 @@ class PeriodicModule(AbstractTriggerModule):
     def output_iu():
         return PeriodicIU
 
+    def prepare_run(self):
+        self.loop.start()
+
+    def shutdown(self):
+        self.loop.cancel()
+
     def trigger(self, **kwargs):
-        self.right_buffers()[-1].put(UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD))
-        threading.Timer(0.05, self.trigger).start()
+        self.append(UpdateMessage.from_iu(self.create_iu(), UpdateType.ADD))
+        self.loop = threading.Timer(0.05, self.trigger)
+        self.loop.start()
