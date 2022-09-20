@@ -5,6 +5,10 @@ from DialogManager import DialogManagerIU
 
 class MotionModule(AbstractConsumingModule):
 
+    def __init__(self):
+        super().__init__()
+        self.current_input = []
+
     @staticmethod
     def name():
         return "Motion Module"
@@ -22,10 +26,10 @@ class MotionModule(AbstractConsumingModule):
             input_iu: DialogManagerIU
             if update_type == UpdateType.ADD:
                 if input_iu.flag != -1:
-                    self.current_ius.append(input_iu)
+                    self.current_input.append(input_iu)
                     send_to_motion_team(input_iu)
             else:
-                self.current_ius.remove(input_iu)
+                self.current_input.remove(input_iu)
 
 
 def send_to_motion_team(dm_iu: DialogManagerIU):

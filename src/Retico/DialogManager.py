@@ -6,16 +6,13 @@ import torch
 from stable_baselines3 import PPO
 
 from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateMessage, UpdateType, IncrementalQueue
-from Gesture import GestureIU
+from Gesture import GestureIU, ID2COORD
 from Language import LanguageIU
 from LanguageAndVision import LanguageAndVisionIU
-from src.Retico.dl import Net
-from src.Retico.Periodic import PeriodicIU
+from dl import Net
+from Periodic import PeriodicIU
 
 NUM_PIECES = 15
-random.seed(NUM_PIECES)
-ID2COORD = {i: (random.randint(-500, 500), random.randint(-500, 500), random.randint(-500, 500)) for i in
-            range(NUM_PIECES)}
 
 
 class Flag(enum.Enum):

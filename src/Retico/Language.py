@@ -34,7 +34,7 @@ class LanguageIU(IncrementalUnit):
         return "Language IU"
 
 
-class LanguageModule(AbstractTriggerModule):
+class LanguageModule(AbstractModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -48,17 +48,17 @@ class LanguageModule(AbstractTriggerModule):
     def description():
         return "Module that represents task 3"
 
-    # @staticmethod
-    # def input_ius():
-    #     return [SpeechRecognitionIU]
+    @staticmethod
+    def input_ius():
+        return [SpeechRecognitionIU]
 
     @staticmethod
     def output_iu():
         '''define output "type" '''
         return LanguageIU
 
-    def prepare_run(self):
-        self.loop.start()
+    # def prepare_run(self):
+    #     self.loop.start()
 
     def shutdown(self):
         self.loop.cancel()
@@ -82,7 +82,7 @@ class LanguageModule(AbstractTriggerModule):
                 return UpdateMessage.from_iu(language_iu, UpdateType.ADD)
 
     def trigger(self, **kwargs):
-        iu = LanguageIU()
+        iu:LanguageIU = self.create_iu()
         iu.grounded_in = iu
         datapoint = DATASET.get_sample()
         iu.confidence_instruction = datapoint[2]

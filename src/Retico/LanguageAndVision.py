@@ -43,9 +43,9 @@ class LanguageAndVisionModule(AbstractTriggerModule):
     def description():
         return "Module that represents task 2"
 
-    # @staticmethod
-    # def input_ius():
-    #    return [SpeechRecognitionIU]
+    @staticmethod
+    def input_ius():
+        return [SpeechRecognitionIU]
 
     @staticmethod
     def output_iu():
@@ -65,7 +65,7 @@ class LanguageAndVisionModule(AbstractTriggerModule):
             return UpdateMessage.from_iu(language_and_vision_iu, UpdateType.ADD)
 
     def trigger(self, **kwargs):
-        iu = LanguageAndVisionIU()
+        iu:LanguageAndVisionIU = self.create_iu()
         iu.grounded_in = iu
         datapoint = DATASET.get_sample()
         iu.confidence_instruction = datapoint[0]
