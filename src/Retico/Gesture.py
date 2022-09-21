@@ -9,6 +9,7 @@ from src.group_F_gesture_control.integration.robot_space import TopDownMap
 NUM_PIECES = 15
 ID2COORD = {i: (i, i, i) for i in range(NUM_PIECES)}
 COORD2ID = {}
+ARTIFICIAL_DELAY = 0.1
 
 
 class GestureIU(IncrementalUnit):
@@ -71,7 +72,7 @@ class GestureModule(AbstractTriggerModule):
         self.loop.cancel()
 
     def trigger(self, **kwargs):
-        iu:GestureIU = self.create_iu()
+        iu: GestureIU = self.create_iu()
         iu.grounded_in = iu
 
         # DATASET
@@ -87,6 +88,11 @@ class GestureModule(AbstractTriggerModule):
             piece_id = COORD2ID[(piece.x, piece.y, piece.z)]
             iu.coordinates[piece_id] = 1.0
 
-        self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+            previous_iu: GestureIU = iu.previous_iu
+            if iu.created_at - previous_iu.created_at > ARTIFICIAL_DELAY or \
+                    previous_iu.confidence_instruction != iu.confidence_instruction or \
+                    previous_iu.coordinates != iu.coordinates:
+                self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+
         self.loop = threading.Timer(1, self.trigger)
         self.loop.start()
