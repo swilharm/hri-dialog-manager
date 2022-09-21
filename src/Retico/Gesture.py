@@ -88,11 +88,7 @@ class GestureModule(AbstractTriggerModule):
             piece_id = COORD2ID[(piece.x, piece.y, piece.z)]
             iu.coordinates[piece_id] = 1.0
 
-            previous_iu: GestureIU = iu.previous_iu
-            if iu.created_at - previous_iu.created_at > ARTIFICIAL_DELAY or \
-                    previous_iu.confidence_instruction != iu.confidence_instruction or \
-                    previous_iu.coordinates != iu.coordinates:
-                self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+            self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
 
         self.loop = threading.Timer(1, self.trigger)
         self.loop.start()
