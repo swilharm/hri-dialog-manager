@@ -1,0 +1,20 @@
+# Retico
+retico-core
+retico-googleasr
+# Dialog Manager
+numpy
+torch
+torchvision
+torchaudio
+stable-baselines3
+# Language Team
+joblib
+scikit-learn==0.23.1
+nltk
+pandas
+# Gesture Team
+shapely
+scikit-spatial
+opencv-python
+pyrealsense2
+mediapipe
