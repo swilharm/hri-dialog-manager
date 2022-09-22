@@ -7,6 +7,7 @@ from src.group_F_gesture_control.integration.gesture_recognition import GestureR
 from src.group_F_gesture_control.integration.robot_space import TopDownMap
 
 NUM_PIECES = 15
+# Bijective mapping between ID and coordinate
 ID2COORD = {i: (i, i, i) for i in range(NUM_PIECES)}
 COORD2ID = {}
 ARTIFICIAL_DELAY = 0.1
@@ -59,6 +60,7 @@ class GestureModule(AbstractTriggerModule):
             output_segmentation=False,  # prints the detected contours to the input image
             use_dummy_pieces=False  # for testing purposes
         )
+        # Reload map and generate mappings
         self.map.update()
         for i, piece in enumerate(self.map.pieces):
             ID2COORD[i] = (piece[1].x, piece[1].y, piece[1].z)

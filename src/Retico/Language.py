@@ -1,11 +1,8 @@
 import random
 import threading
-import time
 
-from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage, AbstractProducingModule, \
-    AbstractTriggerModule
+from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, UpdateMessage, AbstractTriggerModule
 from retico_core.text import SpeechRecognitionIU
-from retico_googleasr import GoogleASRModule
 
 from data.data import DATASET
 from src.ROS.run import main as language
@@ -64,6 +61,7 @@ class LanguageModule(AbstractModule):
         self.loop.cancel()
 
     def process_update(self, update_message: UpdateMessage):
+        # INTEGRATION
         asr_iu: SpeechRecognitionIU = next(update_message.incremental_units())
         if asr_iu.predictions[0][0]:
             vectors = language(asr_iu.predictions[0][0], asr_iu.final)
@@ -78,10 +76,10 @@ class LanguageModule(AbstractModule):
                         language_iu.confidence_instruction = 0
                 else:
                     language_iu.coordinates = (vector[0], vector[1], vector[2])
-                print(language_iu.coordinates)
                 return UpdateMessage.from_iu(language_iu, UpdateType.ADD)
 
     def trigger(self, **kwargs):
+        # DATASET
         iu:LanguageIU = self.create_iu()
         iu.grounded_in = iu
         datapoint = DATASET.get_sample()

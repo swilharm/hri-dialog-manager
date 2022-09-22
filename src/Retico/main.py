@@ -1,3 +1,7 @@
+import sys
+import os
+# Making relative imports work
+sys.path.append(os.getcwd())
 from retico_core.audio import MicrophoneModule
 from retico_googleasr.googleasr import GoogleASRModule
 from LanguageAndVision import LanguageAndVisionModule
@@ -7,6 +11,7 @@ from Periodic import PeriodicModule
 from DialogManager import DialogManagerModule
 from Motion import MotionModule
 
+# Initiate all modules
 microphone_module = MicrophoneModule(chunk_size=44100)
 asr_module = GoogleASRModule()
 language_and_vision_module = LanguageAndVisionModule()
@@ -16,7 +21,9 @@ periodic_module = PeriodicModule()
 dialog_manager_module = DialogManagerModule(model="DT")
 motion_module = MotionModule()
 
+
 if __name__ == '__main__':
+    # Link up modules
     microphone_module.subscribe(asr_module)
     asr_module.subscribe(language_and_vision_module)
     asr_module.subscribe(language_only_module)
@@ -26,6 +33,7 @@ if __name__ == '__main__':
     periodic_module.subscribe(dialog_manager_module)
     dialog_manager_module.subscribe(motion_module)
 
+    # Start all modules
     microphone_module.run()
     asr_module.run()
     language_and_vision_module.run()
@@ -36,8 +44,10 @@ if __name__ == '__main__':
     motion_module.run()
 
     print("READY")
+    # Run until ENTER
     input()
 
+    # Stop all modules
     motion_module.stop()
     dialog_manager_module.stop()
     language_and_vision_module.stop()

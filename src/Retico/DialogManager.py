@@ -1,6 +1,5 @@
 import time
 import enum
-import random
 import numpy as np
 import torch
 from stable_baselines3 import PPO
@@ -69,13 +68,13 @@ class DialogManagerModule(AbstractModule):
 
     @staticmethod
     def output_iu():
-        ''' define output "type" '''
         return DialogManagerIU
 
     def setup(self):
         self.lv = LanguageAndVisionIU(grounded_in=LanguageAndVisionIU(), processed=True)
         self.l = LanguageIU(grounded_in=LanguageIU(), processed=True)
         self.g = GestureIU(grounded_in=GestureIU(), processed=True)
+        # Load the chosen model
         if self.model == "DL":
             self.setup_deep_learning()
         elif self.model == "RL":
@@ -86,10 +85,12 @@ class DialogManagerModule(AbstractModule):
         output_ius = []
         for input_iu, update_type in zip(update_message.incremental_units(), update_message.update_types()):
             input_iu: IncrementalUnit
+            # Revokes reset the memory to the previous IU
             if update_type == UpdateType.REVOKE:
                 input_iu = input_iu.previous_iu
                 input_iu.processed = False
 
+            # Store IU in memory
             if input_iu.type() == "Language and Vision IU":
                 self.lv = input_iu
             elif input_iu.type() == "Language IU":
@@ -97,12 +98,15 @@ class DialogManagerModule(AbstractModule):
             elif input_iu.type() == "Gesture IU":
                 self.g = input_iu
 
+            # Figure out which IU to  mainly process
             oldest_iu_time = min(self.lv.grounded_in.created_at if not self.lv.processed else np.inf,
                                  self.l.grounded_in.created_at if not self.l.processed else np.inf,
                                  self.g.grounded_in.created_at if not self.g.processed else np.inf)
 
+            # Only process if main IU has at least a certain age
             ARTIFICIAL_DELAY = 0.1
             if oldest_iu_time != np.inf and time.time() - oldest_iu_time > ARTIFICIAL_DELAY:
+                # Find IUs that happened at the same time, use empty IU if none found
                 lv = self.lv
                 while lv.previous_iu and lv.grounded_in.created_at - oldest_iu_time > 0:
                     lv = lv.previous_iu
@@ -121,6 +125,7 @@ class DialogManagerModule(AbstractModule):
                 if oldest_iu_time - g.grounded_in.created_at > ARTIFICIAL_DELAY:
                     g = GestureIU()
 
+                # Apply chosen model to the IUs
                 if self.model == "DL":
                     decision = self.deep_learning(lv, l, g)
                 elif self.model == "RL":
@@ -128,12 +133,14 @@ class DialogManagerModule(AbstractModule):
                 else:
                     decision = self.decision_tree(lv, l, g)
 
+                # Mark IUs as processed, so they can't be main IU anymore
                 lv.processed = True
                 l.processed = True
                 g.processed = True
 
                 # print("Decision:", decision)
 
+                # Translate model output into IU
                 output_iu: DialogManagerIU = self.create_iu()
                 if decision == -1:
                     output_iu.flag = Flag.UNCERTAINTY.value
@@ -148,6 +155,7 @@ class DialogManagerModule(AbstractModule):
                     output_iu.decision_coordinate = ID2COORD[decision - 2]
                     output_iu.flag = 1
 
+                # If revoked and different from previous, revoke and add, else do nothing
                 if update_type == UpdateType.REVOKE:
                     previous_iu: DialogManagerIU = output_iu.previous_iu
                     if previous_iu.confidence_decision != output_iu.confidence_decision or \
@@ -160,6 +168,7 @@ class DialogManagerModule(AbstractModule):
                 return UpdateMessage.from_iu_list(self, output_ius)
 
     def decision_tree(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU) -> int:
+        """Apply rule based decision tree model to the input"""
         instr_thresh = 0.8
         coord_thresh = 0.7
         if l.confidence_instruction > instr_thresh:
@@ -190,6 +199,7 @@ class DialogManagerModule(AbstractModule):
                 return 0
 
     def build_vector(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU):
+        """Helper function to turn IU input into numpy array"""
         array = np.empty((33,))
         array[0] = lv.confidence_instruction
         array[1] = g.confidence_instruction
@@ -199,6 +209,7 @@ class DialogManagerModule(AbstractModule):
         return array
 
     def setup_deep_learning(self):
+        """Loads the trained DL model"""
         print("Loading DL model 1")
         self.net_task_1 = Net(input_size=33, hidden_size=32, output_size=17)
         self.net_task_1.load_state_dict(torch.load("src/Retico/DL_action_model.pt"))
@@ -209,12 +220,16 @@ class DialogManagerModule(AbstractModule):
         self.net_task_2.eval()
 
     def setup_reinforcement_learning(self):
+        """
+        Loads the trained RL model
+        """
         print("Loading RL model 1")
         self.rl_task_1 = PPO.load('src/Retico/RL_action_model', None)
         print("Loading RL model 2")
         self.rl_task_2 = PPO.load('src/Retico/RL_uncertainty_model', None)
 
     def deep_learning(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU) -> int:
+        """Apply DL model to input"""
         tensor = torch.FloatTensor(self.build_vector(lv, l, g))
         uncertainty = torch.argmax(self.net_task_2(tensor)).item()
         if uncertainty == 1:
@@ -223,6 +238,7 @@ class DialogManagerModule(AbstractModule):
             return torch.argmax(self.net_task_1(tensor)).item()
 
     def reinforcement_learning(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU) -> int:
+        """Apply RL model to input"""
         array = self.build_vector(lv, l, g)
         uncertainty, _ = self.rl_task_2.predict(array)
         if uncertainty == 1:

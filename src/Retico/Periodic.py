@@ -1,5 +1,4 @@
 import threading
-import time
 
 from retico_core import IncrementalUnit, UpdateMessage, UpdateType, AbstractTriggerModule
 
@@ -12,6 +11,10 @@ class PeriodicIU(IncrementalUnit):
 
 
 class PeriodicModule(AbstractTriggerModule):
+    """
+    This module periodically calls the DM to ensure that IUs that have been ignored
+    because they are too new, are considered later even if no new IU arrives.
+    """
 
     def __init__(self):
         super().__init__()

@@ -58,6 +58,7 @@ class LanguageAndVisionModule(AbstractTriggerModule):
         self.loop.cancel()
 
     def process_update(self, update_message: UpdateMessage):
+        # INTEGRATION
         asr_iu: SpeechRecognitionIU = next(update_message.incremental_units())
         if asr_iu.predictions[0][0]:
             language_and_vision_iu: LanguageAndVisionIU = self.create_iu(grounded_in=asr_iu)
@@ -65,6 +66,7 @@ class LanguageAndVisionModule(AbstractTriggerModule):
             return UpdateMessage.from_iu(language_and_vision_iu, UpdateType.ADD)
 
     def trigger(self, **kwargs):
+        # DATASET
         iu:LanguageAndVisionIU = self.create_iu()
         iu.grounded_in = iu
         datapoint = DATASET.get_sample()

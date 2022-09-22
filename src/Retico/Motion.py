@@ -22,6 +22,7 @@ class MotionModule(AbstractConsumingModule):
         return [DialogManagerIU]
 
     def process_update(self, update_message):
+        # Store incoming IUS, handle revokes
         for input_iu, update_type in zip(update_message.incremental_units(), update_message.update_types()):
             input_iu: DialogManagerIU
             if update_type == UpdateType.ADD:
