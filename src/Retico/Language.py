@@ -51,7 +51,6 @@ class LanguageModule(AbstractModule):
 
     @staticmethod
     def output_iu():
-        '''define output "type" '''
         return LanguageIU
 
     # def prepare_run(self):

@@ -72,6 +72,7 @@ class GestureModule(AbstractTriggerModule):
 
     def shutdown(self):
         self.loop.cancel()
+        del self.g_rec
 
     def trigger(self, **kwargs):
         iu: GestureIU = self.create_iu()

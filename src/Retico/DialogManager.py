@@ -12,7 +12,7 @@ from dl import Net
 from Periodic import PeriodicIU
 
 NUM_PIECES = 15
-
+ARTIFICIAL_DELAY = 0
 
 class Flag(enum.Enum):
     UNCERTAINTY = 0
@@ -104,7 +104,6 @@ class DialogManagerModule(AbstractModule):
                                  self.g.grounded_in.created_at if not self.g.processed else np.inf)
 
             # Only process if main IU has at least a certain age
-            ARTIFICIAL_DELAY = 0.1
             if oldest_iu_time != np.inf and time.time() - oldest_iu_time > ARTIFICIAL_DELAY:
                 # Find IUs that happened at the same time, use empty IU if none found
                 lv = self.lv
@@ -235,7 +234,8 @@ class DialogManagerModule(AbstractModule):
         if uncertainty == 1:
             return -1
         else:
-            return torch.argmax(self.net_task_1(tensor)).item()
+            action = torch.argmax(self.net_task_1(tensor)).item()
+            return action
 
     def reinforcement_learning(self, lv: LanguageAndVisionIU, l: LanguageIU, g: GestureIU) -> int:
         """Apply RL model to input"""
@@ -244,4 +244,5 @@ class DialogManagerModule(AbstractModule):
         if uncertainty == 1:
             return -1
         else:
-            return self.rl_task_1.predict(array)[0]
+            action = self.rl_task_1.predict(array)[0]
+            return action
