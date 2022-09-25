@@ -3,8 +3,6 @@ import threading
 from retico_core.abstract import IncrementalUnit, UpdateMessage, UpdateType, AbstractTriggerModule
 
 from data.data import DATASET
-from src.group_F_gesture_control.integration.gesture_recognition import GestureRecognition
-from src.group_F_gesture_control.integration.robot_space import TopDownMap
 
 NUM_PIECES = 15
 # Bijective mapping between ID and coordinate
@@ -52,46 +50,25 @@ class GestureModule(AbstractTriggerModule):
     def output_iu():
         return GestureIU
 
-    def setup(self):
-        self.map = TopDownMap(
-            camera_id=-1,  # camera to photograph the robot space, < 0 defaults to test img
-            scale=(0, 500),  # scale of the robot space, to be defined by robot control
-            piece_height=1,  # height of the pieces in the scale of the robot space
-            output_segmentation=False,  # prints the detected contours to the input image
-            use_dummy_pieces=False  # for testing purposes
-        )
-        # Reload map and generate mappings
-        self.map.update()
-        for i, piece in enumerate(self.map.pieces):
-            ID2COORD[i] = (piece[1].x, piece[1].y, piece[1].z)
-            COORD2ID[(piece[1].x, piece[1].y, piece[1].z)] = i
-        self.g_rec = GestureRecognition(self.map, real_sense_test_mode=True)
-
     def prepare_run(self):
         self.loop.start()
 
     def shutdown(self):
         self.loop.cancel()
-        del self.g_rec
 
     def trigger(self, **kwargs):
         iu: GestureIU = self.create_iu()
         iu.grounded_in = iu
 
         # DATASET
-        # datapoint = DATASET.get_sample()
-        # iu.confidence_instruction = datapoint[1]
-        # iu.coordinates = {i: j for i, j in enumerate(datapoint[3 + NUM_PIECES:])}
+        datapoint = DATASET.get_sample()
+        iu.confidence_instruction = datapoint[1]
+        iu.coordinates = {i: j for i, j in enumerate(datapoint[3 + NUM_PIECES:])}
 
         # INTEGRATION
-        targets = self.g_rec.get_targets()
-        if targets:
-            iu.confidence_instruction = 1.0
-            piece = targets[0][1]
-            piece_id = COORD2ID[(piece.x, piece.y, piece.z)]
-            iu.coordinates[piece_id] = 1.0
+        # TODO Integrate Gesture team
 
-            self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
+        self.append(UpdateMessage.from_iu(iu, UpdateType.ADD))
 
         self.loop = threading.Timer(1, self.trigger)
         self.loop.start()

@@ -7,14 +7,3 @@ torch
 torchvision
 torchaudio
 stable-baselines3
-# Language Team
-joblib
-scikit-learn==0.23.1
-nltk
-pandas
-# Gesture Team
-shapely
-scikit-spatial
-opencv-python
-pyrealsense2
-mediapipe

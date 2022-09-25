@@ -34,8 +34,8 @@ if __name__ == '__main__':
     dialog_manager_module.subscribe(motion_module)
 
     # Start all modules
-    microphone_module.run()
-    asr_module.run()
+    # microphone_module.run()
+    # asr_module.run()
     language_and_vision_module.run()
     language_only_module.run()
     gesture_module.run()
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     language_only_module.stop()
     gesture_module.stop()
     periodic_module.stop()
-    asr_module.stop()
-    microphone_module.stop()
+    # asr_module.stop()
+    # microphone_module.stop()
 
     print("STOPPED")

@@ -5,7 +5,6 @@ from retico_core.abstract import IncrementalUnit, AbstractModule, UpdateType, Up
 from retico_core.text import SpeechRecognitionIU
 
 from data.data import DATASET
-from src.ROS.run import main as language
 
 
 class LanguageIU(IncrementalUnit):
@@ -31,7 +30,7 @@ class LanguageIU(IncrementalUnit):
         return "Language IU"
 
 
-class LanguageModule(AbstractModule):
+class LanguageModule(AbstractTriggerModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -53,8 +52,8 @@ class LanguageModule(AbstractModule):
     def output_iu():
         return LanguageIU
 
-    # def prepare_run(self):
-    #     self.loop.start()
+    def prepare_run(self):
+        self.loop.start()
 
     def shutdown(self):
         self.loop.cancel()
@@ -63,19 +62,9 @@ class LanguageModule(AbstractModule):
         # INTEGRATION
         asr_iu: SpeechRecognitionIU = next(update_message.incremental_units())
         if asr_iu.predictions[0][0]:
-            vectors = language(asr_iu.predictions[0][0], asr_iu.final)
-            if vectors:
-                vector = vectors[0]
-                language_iu: LanguageIU = self.create_iu(grounded_in=asr_iu)
-                language_iu.payload = vector
-                language_iu.confidence_instruction = vector[3]
-                if vector[0] == vector[1] == vector[2]:
-                    language_iu.flag = vector[0]
-                    if language_iu.flag == 0:
-                        language_iu.confidence_instruction = 0
-                else:
-                    language_iu.coordinates = (vector[0], vector[1], vector[2])
-                return UpdateMessage.from_iu(language_iu, UpdateType.ADD)
+            language_iu: LanguageIU = self.create_iu(grounded_in=asr_iu)
+            # TODO Integrate Language team
+            return UpdateMessage.from_iu(language_iu, UpdateType.ADD)
 
     def trigger(self, **kwargs):
         # DATASET
